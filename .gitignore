@@ -1,0 +1,72 @@
+# python
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.manifest
+*.spec
+
+# jupyter
+.ipynb_checkpoints/
+
+# virtual environments
+venv/
+.env/
+.envrc
+*.env
+
+# vs code
+.vscode/
+*.code-workspace
+
+# logs and runtime
+*.log
+*.out
+*.err
+*.pid
+
+# os/editor artifacts
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+
+# pytorch/tensorflow checkpoints
+*.ckpt
+*.pth
+*.pt
+*.pb
+
+# temp files
+*.tmp
+*.bak
+*.old
+*.orig
+*~
+
+# remote sync artifacts
+.ssh/
+*.pem
+id_rsa*
+*.remote-sync.json
+
+# wandb
+wandb/
+
+# old
+old/
+
+# secrets
+gdrive_creds.json
+client_secrets.json
+gservice_account.json
+
+
+
+
+
+
