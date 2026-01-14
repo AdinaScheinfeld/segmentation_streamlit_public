@@ -6,8 +6,16 @@ from pydrive2.drive import GoogleDrive
 
 gauth = GoogleAuth()
 
-# Use local webserver auth OFF (HPC-safe)
-gauth.LocalWebserverAuth = False
+# Ensure we get a refresh_token (needed for long-running / repeated jobs)
+gauth.settings["client_config_file"] = "client_secrets.json"
+gauth.settings["oauth_scope"] = ["https://www.googleapis.com/auth/drive"]
+gauth.settings["get_refresh_token"] = True
+gauth.settings["oauth_params"] = {
+    "access_type": "offline",
+    "prompt": "consent",
+}
+
+# HPC-safe auth (prints a URL + asks for a verification code)
 gauth.CommandLineAuth()
 
 # Save credentials for future runs

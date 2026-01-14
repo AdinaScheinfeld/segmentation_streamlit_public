@@ -137,8 +137,8 @@ def main():
             ("image", row["image_path"], False),
             ("gt", row["gt_path"], True),
             ("pred_image_clip", row["image_clip_path"], True),
-            ("pred_image_only", row["image_only_path"], True),
-            ("pred_random", row["random_path"], True),
+            ("pred_unet", row["unet_path"], True),
+            ("pred_microsam", row["microsam_path"], True),
         ]
 
         url_map = {}

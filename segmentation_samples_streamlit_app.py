@@ -21,14 +21,14 @@ import streamlit as st
 
 # --- Variable Definitions ---
 
-MODELS = ["image_clip", "image_only", "random"]
+MODELS = ["image_clip", "unet", "microsam"]
 LABELS = ["A", "B", "C"]
 
 # map model name -> URL column name in the CSV
 MODEL_TO_URLCOL = {
     "image_clip": "pred_image_clip_url",
-    "image_only": "pred_image_only_url",
-    "random": "pred_random_url",
+    "unet": "pred_unet_url",
+    "microsam": "pred_microsam_url",
 }
 
 RESPONSES_TAB = "Responses"
@@ -320,11 +320,17 @@ def main():
 
     c0, c1, c2, c3 = st.columns(4)
 
-    with c0:
-        show_image_url_cached(sample_key, row["image_url"], "Image")
+    show_gt = st.checkbox("Show ground truth", key=f"show_gt_{st.session_state.idx}")
 
-        if st.checkbox("Show ground truth", key=f"show_gt_{st.session_state.idx}"):
-            show_image_url_cached(sample_key, row["gt_url"], "Ground truth")
+    with c0:
+        if show_gt:
+            gt_col, img_col = st.columns(2)
+            with gt_col:
+                show_image_url_cached(sample_key, row["gt_url"], "Ground Truth")
+            with img_col:
+                show_image_url_cached(sample_key, row["image_url"], "Image")
+        else:
+            show_image_url_cached(sample_key, row["image_url"], "Image")
 
     for col, label in zip([c1, c2, c3], LABELS):
         model = mapping[label]
@@ -348,8 +354,8 @@ def main():
             try:
                 _ = _fetch_image_bytes(next_row["image_url"])
                 _ = _fetch_image_bytes(next_row["pred_image_clip_url"])
-                _ = _fetch_image_bytes(next_row["pred_image_only_url"])
-                _ = _fetch_image_bytes(next_row["pred_random_url"])
+                _ = _fetch_image_bytes(next_row["pred_unet_url"])
+                _ = _fetch_image_bytes(next_row["pred_microsam_url"])
             except Exception:
                 pass
 

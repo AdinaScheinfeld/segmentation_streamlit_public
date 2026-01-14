@@ -13,12 +13,17 @@ set -euo pipefail
 mkdir -p /midtier/paetzollab/scratch/ads4015/ssl_streamlit/logs
 
 module load anaconda3/2022.10-34zllqw
-source activate gdrive-env
+source activate gdrive-env2
 
-SAMPLES_CSV=/midtier/paetzollab/scratch/ads4015/ssl_streamlit/segmentation_samples_list.csv
-OUT_DIR=/midtier/paetzollab/scratch/ads4015/ssl_streamlit/seg_eval_export_pngs
-OUT_CSV=/midtier/paetzollab/scratch/ads4015/ssl_streamlit/segmentation_samples_urls.csv
+# indicate starting
+echo "Starting export_pngs_and_upload_drive_job.sh at $(date)"
 
+# define variables
+SAMPLES_CSV=/midtier/paetzollab/scratch/ads4015/ssl_streamlit/segmentation_samples_list.csv # path to samples CSV generated using build_segmentation_samples_list_job.sh
+OUT_DIR=/midtier/paetzollab/scratch/ads4015/ssl_streamlit/seg_eval_export_pngs # local output dir for exported PNGs
+OUT_CSV=/home/ads4015/segmentation_streamlit_public/segmentation_samples_urls.csv # path to output CSV with Google Drive URLs
+
+# run the export and upload script
 python -u /home/ads4015/segmentation_streamlit_public/export_pngs_and_upload_drive.py \
   --samples_csv "${SAMPLES_CSV}" \
   --out_dir "${OUT_DIR}" \
@@ -27,3 +32,6 @@ python -u /home/ads4015/segmentation_streamlit_public/export_pngs_and_upload_dri
   --client_secrets_json /home/ads4015/segmentation_streamlit_public/client_secrets.json \
   --drive_root_name "seg_eval_assets" \
   --overwrite_local
+
+# indicate ending
+echo "Finished export_pngs_and_upload_drive_job.sh at $(date)"

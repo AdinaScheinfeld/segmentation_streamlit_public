@@ -25,6 +25,39 @@ DTYPE_TO_PATCHDIR = {
     "vessels": "vessels_patches",
 }
 
+# map model to method subdir
+DTYPE_TO_METHOD_SUBDIR = {
+
+    # image+clip model uses shorter names
+    "image_clip": {
+        "amyloid_plaque": "amyloid_plaque",
+        "c_fos_positive": "c_fos_positive",
+        "cell_nucleus": "cell_nucleus",
+        "vessels": "vessels",
+    },
+
+    # unet and microsam use *_patches folder names
+    "unet": {
+        "amyloid_plaque": "amyloid_plaque_patches",
+        "c_fos_positive": "c_fos_positive_patches",
+        "cell_nucleus": "cell_nucleus_patches",
+        "vessels": "vessels_patches",
+    },
+    "microsam": {
+        "amyloid_plaque": "amyloid_plaque_patches",
+        "c_fos_positive": "c_fos_positive_patches",
+        "cell_nucleus": "cell_nucleus_patches",
+        "vessels": "vessels_patches",
+    },
+}
+
+# map model to datatype subdir under preds/
+METHOD_TO_PREDS_SUBDIR = {
+    "image_clip": "preds", # .../<runfolder>/preds/*.nii.gz
+    "unet": "", # .../<runfolder>/*.nii.gz
+    "microsam": "patches" # .../<runfolder>/patches/*.nii.gz
+}
+
 
 # --- Helper Functions ---
 
@@ -37,8 +70,9 @@ def parse_pred_ids(pred_filename: str):
 
 
 # function to list runfolders for a given datatype
-def list_runfolders(root: Path, datatype: str):
-    base = root / "preds" / datatype
+def list_runfolders(root: Path, datatype: str, method: str):
+    dtype_dir = DTYPE_TO_METHOD_SUBDIR[method][datatype]
+    base = root / "preds" / dtype_dir
     if not base.exists():
         return []
     return sorted([p for p in base.iterdir() if p.is_dir()])
@@ -69,16 +103,18 @@ def pick_one_runfolder_per_fold_max_ntr_with_info(runfolders):
 
 
 # function to list prediction files in a runfolder
-def list_pred_files(runfolder: Path):
-    pred_dir = runfolder / "preds"
+def list_pred_files(runfolder: Path, method: str):
+    sub = METHOD_TO_PREDS_SUBDIR[method]
+    pred_dir = runfolder if sub == "" else (runfolder / sub)
     if not pred_dir.exists():
         return []
     return sorted(pred_dir.glob("*_pred_*.nii.gz"))  # ONLY preds, not probs
 
 
 # function to get corresponding runfolder for other models
-def corresponding_runfolder(model_root: Path, datatype: str, runfolder_name: str):
-    return model_root / "preds" / datatype / runfolder_name
+def corresponding_runfolder(model_root: Path, datatype: str, runfolder_name: str, method: str):
+    dtype_dir = DTYPE_TO_METHOD_SUBDIR[method][datatype]
+    return model_root / "preds" / dtype_dir / runfolder_name
 
 
 # function to check if a slice has any foreground in ANY prediction
@@ -157,8 +193,8 @@ def main():
     # argument parsing
     ap = argparse.ArgumentParser()
     ap.add_argument("--image_clip_root", type=Path, required=True, help="Path to segmentation preds from image+clip model")
-    ap.add_argument("--image_only_root", type=Path, required=True, help="Path to segmentation preds from image_only model")
-    ap.add_argument("--random_root", type=Path, required=True, help="Path to segmentation preds from random model")
+    ap.add_argument("--unet_root", type=Path, required=True, help="Path to segmentation preds from unet model")
+    ap.add_argument("--microsam_root", type=Path, required=True, help="Path to segmentation preds from microsam model")
     ap.add_argument("--finetune_patches_root", type=Path, required=True, help="Path to selma3d_finetune_patches (contains *_patches subfolders)")
     ap.add_argument("--datatypes", nargs="+", default=["amyloid_plaque", "c_fos_positive", "cell_nucleus", "vessels"], help="List of datatypes to include")
     ap.add_argument("--z_planes", nargs="+", type=int, default=[32, 64], help="Preferred z indices; script will backfill if empty.")
@@ -172,8 +208,8 @@ def main():
     # roots dict
     roots = {
         "image_clip": args.image_clip_root,
-        "image_only": args.image_only_root,
-        "random":     args.random_root,
+        "unet": args.unet_root,
+        "microsam": args.microsam_root,
     }
 
     # list to hold all records
@@ -183,7 +219,7 @@ def main():
         print(f"\nProcessing datatype: {datatype}", flush=True)
 
         # 1) Find runfolders in image_clip root
-        runfolders = list_runfolders(roots["image_clip"], datatype)
+        runfolders = list_runfolders(roots["image_clip"], datatype, method="image_clip")
         if not runfolders:
             raise SystemExit(f"No runfolders found for datatype={datatype} under {roots['image_clip']}")
 
@@ -204,31 +240,51 @@ def main():
             run_name = rf_clip.name
 
             # 3) Ensure corresponding runfolders exist for other models
-            rf_only = corresponding_runfolder(roots["image_only"], datatype, run_name)
-            rf_rand = corresponding_runfolder(roots["random"], datatype, run_name)
+            rf_unet = corresponding_runfolder(roots["unet"], datatype, run_name, method="unet")
+            rf_microsam = corresponding_runfolder(roots["microsam"], datatype, run_name, method="microsam")
 
-            if not rf_only.exists():
-                raise SystemExit(f"Missing image_only runfolder: {rf_only}")
-            if not rf_rand.exists():
-                raise SystemExit(f"Missing random runfolder: {rf_rand}")
+            if not rf_unet.exists():
+                raise SystemExit(f"Missing unet runfolder: {rf_unet}")
+            if not rf_microsam.exists():
+                raise SystemExit(f"Missing microsam runfolder: {rf_microsam}")
 
             # 4) Pick exactly preds_per_fold files from the image_clip runfolder
-            clip_files = list_pred_files(rf_clip)
+            clip_files = list_pred_files(rf_clip, method="image_clip")
             if len(clip_files) < args.preds_per_fold:
                 raise SystemExit(f"Found only {len(clip_files)} preds in {rf_clip}/preds, expected {args.preds_per_fold}")
+
+            # debugging counters
+            dbg = {
+                "total_clip_files": 0,
+                "missing_unet_file": 0,
+                "missing_microsam_file": 0,
+                "insufficient_slices": 0,
+                "missing_image_or_gt": 0,
+                "selected_preds": 0,
+            }
 
             # We need exactly preds_per_fold pred-volumes that each yield slices_per_pred valid z's.
             selected_pred_vols = 0
             for clip_path in clip_files:
+                dbg["total_clip_files"] += 1
                 if selected_pred_vols >= args.preds_per_fold:
                     break
 
-                only_path = rf_only / "preds" / clip_path.name
-                rand_path = rf_rand / "preds" / clip_path.name
-                if not only_path.exists() or not rand_path.exists():
+                unet_dir = rf_unet if METHOD_TO_PREDS_SUBDIR["unet"] == "" else (rf_unet / METHOD_TO_PREDS_SUBDIR["unet"])
+                microsam_dir = rf_microsam if METHOD_TO_PREDS_SUBDIR["microsam"] == "" else (rf_microsam / METHOD_TO_PREDS_SUBDIR["microsam"])
+
+                unet_path = unet_dir / clip_path.name
+                microsam_path = microsam_dir / clip_path.name
+
+                if not unet_path.exists():
+                    dbg["missing_unet_file"] += 1
+                    continue
+                if not microsam_path.exists():
+                    dbg["missing_microsam_file"] += 1
                     continue
 
-                pred_paths = [clip_path, only_path, rand_path]
+                pred_paths = [clip_path, unet_path, microsam_path]
+                
                 z_list, z_info = select_z_slices_for_pred(
                     pred_paths,
                     z_targets=args.z_planes,
@@ -236,7 +292,7 @@ def main():
                     z_border=args.z_border
                 )
                 if len(z_list) != args.slices_per_pred:
-                    continue  # this pred volume doesn't have enough informative slices
+                    dbg["insufficient_slices"] += 1
 
                 # ---- PRINT SELECTION DETAILS ----
                 patch_id, vol_id, ch = parse_pred_ids(clip_path.name)
@@ -254,6 +310,7 @@ def main():
                 image_path = patchdir / f"{patch_id}_{vol_id}_ch{ch}.nii.gz"
                 gt_path    = patchdir / f"{patch_id}_{vol_id}_ch{ch}_label.nii.gz"
                 if not image_path.exists() or not gt_path.exists():
+                    dbg["missing_image_or_gt"] += 1
                     continue
 
                 # Append one row per chosen z (unique by construction)
@@ -269,11 +326,15 @@ def main():
                         "image_path": str(image_path),
                         "gt_path": str(gt_path),
                         "image_clip_path": str(clip_path),
-                        "image_only_path": str(only_path),
-                        "random_path": str(rand_path),
+                        "unet_path": str(unet_path),
+                        "microsam_path": str(microsam_path),
                     })
 
                 selected_pred_vols += 1
+                dbg['selected_preds'] += 1
+
+            # print debug summary for this fold
+            print(f'   [DEBUG {datatype} fold{fold}] {dbg}', flush=True)
 
             if selected_pred_vols != args.preds_per_fold:
                 raise SystemExit(
