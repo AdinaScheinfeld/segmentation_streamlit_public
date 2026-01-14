@@ -86,11 +86,19 @@ def upload_file(drive: GoogleDrive, local_path: Path, parent_id: str) -> str:
     f = drive.CreateFile({"title": local_path.name, "parents": [{"id": parent_id}]})
     f.SetContentFile(str(local_path))
     f.Upload()
+
+    # make it publicly readable
+    f.InsertPermission({
+        "type": "anyone",
+        "value": "anyone",
+        "role": "reader",
+    })
+
     return f["id"]
 
 def direct_uc_url(file_id: str) -> str:
     # direct image URL that works with st.image
-    return f"https://drive.google.com/uc?id={file_id}"
+    return f"https://drive.google.com/uc?export=download&id={file_id}"
 
 
 # -------------------------

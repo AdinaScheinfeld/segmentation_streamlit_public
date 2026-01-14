@@ -35,3 +35,4 @@ python -u /home/ads4015/segmentation_streamlit_public/export_pngs_and_upload_dri
 
 # indicate ending
 echo "Finished export_pngs_and_upload_drive_job.sh at $(date)"
+echo "Output CSV with Google Drive URLs: ${OUT_CSV}"
