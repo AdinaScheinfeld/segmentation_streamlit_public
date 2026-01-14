@@ -318,28 +318,27 @@ def main():
 
     # ref = load_slice(row["image_path"], int(row.z))
 
-    c0, c1, c2, c3 = st.columns(4)
+    # layout: GT | Image | A | B | C
+    col_gt, col_img, c1, c2, c3 = st.columns([1, 1, 1, 1, 1])
 
     show_gt = st.checkbox("Show ground truth", key=f"show_gt_{st.session_state.idx}")
 
-    with c0:
-        if show_gt:
-            gt_col, img_col = st.columns(2)
-            with gt_col:
-                show_image_url_cached(sample_key, row["gt_url"], "Ground Truth")
-            with img_col:
-                show_image_url_cached(sample_key, row["image_url"], "Image")
+    with col_gt:
+        if show_gt: # if checked, show GT
+            show_image_url_cached(sample_key, row["gt_url"], "Ground Truth")
         else:
-            show_image_url_cached(sample_key, row["image_url"], "Image")
+            # Placeholder keeps column width stable
+            st.empty()
+
+    with col_img:
+        show_image_url_cached(sample_key, row["image_url"], "Image")
 
     for col, label in zip([c1, c2, c3], LABELS):
         model = mapping[label]
-        # pred = load_slice(row[f"{model}_path"], int(row.z))
         url_col = MODEL_TO_URLCOL[model]
         pred_url = row[url_col]
 
         with col:
-            # show_slice(pred, f"Prediction {label}")
             show_image_url_cached(sample_key, pred_url, f"Prediction {label}")
 
     # ---- Prefetch next sample (warm caches) ----
