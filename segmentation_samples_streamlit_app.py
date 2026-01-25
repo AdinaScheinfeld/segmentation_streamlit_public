@@ -23,6 +23,12 @@ import streamlit as st
 
 MODELS = ["image_clip", "unet", "microsam"]
 LABELS = ["A", "B", "C"]
+PRETTY_DATATYPE = {
+    "amyloid_plaque": "Amyloid beta plaque",
+    "c_fos_positive": "cFos positive cells",
+    "cell_nucleus": "Cell nucleus",
+    "vessels": "Vessels",
+}
 
 # map model name -> URL column name in the CSV
 MODEL_TO_URLCOL = {
@@ -357,19 +363,22 @@ def main():
     with _h_main:
         st.markdown(
             f"""
+            <div>
             <div style="display:flex; align-items:center; gap:0.75rem;">
-            <h3 style="margin:0;">
+                <h3 style="margin:0;">
                 Reference image + predictions
-            </h3>
-            <h3 style="margin:0; font-weight:400; color:#555;">
+                </h3>
+                <h3 style="margin:0; font-weight:400; color:#555;">
                 (Slice {st.session_state.idx + 1} / {len(df)})
-            </h3>
+                </h3>
+            </div>
+            <div style="margin-top:0.15rem; color:#666; font-size:0.95rem;">
+                Patch type: <strong>{PRETTY_DATATYPE.get(row['datatype'], row['datatype'])}</strong>
+            </div>
             </div>
             """,
             unsafe_allow_html=True,
         )
-
-    st.caption(f"Patch type: {row['datatype']}")
 
     # layout: GT | Image | A | B | C
     col_gt, col_img, c1, c2, c3 = st.columns([1, 1, 1, 1, 1])
