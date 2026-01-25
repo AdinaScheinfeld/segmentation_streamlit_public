@@ -221,14 +221,20 @@ def main():
     st.markdown(
         """
         <style>
-          /* Remove extra top padding */
-          .block-container { padding-top: 0.6rem; padding-bottom: 0.6rem; }
-          /* Tighten spacing between elements */
-          div[data-testid="stVerticalBlock"] { gap: 0.25rem; }
-          /* Slightly smaller font in captions/labels */
-          .stCaption { margin-top: 0.1rem; margin-bottom: 0.1rem; }
-          /* Keep radio rows tight */
-          div[role="radiogroup"] > label { padding: 0.1rem 0.25rem; }
+          /* Reduce whitespace without clipping the title */
+          .block-container { padding-top: 1.1rem; padding-bottom: 0.6rem; }
+          h1 { margin-top: 0rem !important; padding-top: 0rem !important; }
+
+          /* Tighten vertical spacing globally */
+          div[data-testid="stVerticalBlock"] { gap: 0.20rem; }
+          .stCaption { margin-top: 0.05rem; margin-bottom: 0.05rem; }
+
+          /* Make images shorter so the whole page fits */
+          .stImage img { max-height: 270px; object-fit: contain; }
+
+          /* Compact widget spacing */
+          div[role="radiogroup"] > label { padding: 0.05rem 0.20rem; }
+          div[data-testid="stForm"] { padding-top: 0.2rem; }
         </style>
         """,
         unsafe_allow_html=True,
@@ -335,12 +341,13 @@ def main():
     # DISPLAY IMAGE + PREDS
     # --------------------
 
+    # Header row: empty GT column | header spanning Image + A + B + C
+    _h_gt, _h_main = st.columns([1, 4])
+    with _h_main:
+        st.markdown("### Reference image + predictions")
+
     # layout: GT | Image | A | B | C
     col_gt, col_img, c1, c2, c3 = st.columns([1, 1, 1, 1, 1])
-
-    # Put the header in the Image column so it always "starts" above Image
-    with col_img:
-        st.markdown("### Reference image + predictions")
 
     show_gt = st.checkbox("Show ground truth", key=f"show_gt_{st.session_state.idx}")
 
