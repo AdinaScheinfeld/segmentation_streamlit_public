@@ -396,14 +396,9 @@ def main():
     # layout: GT | Image | A | B | C
     col_gt, col_img, c1, c2, c3 = st.columns([1, 1, 1, 1, 1])
 
-    show_gt = st.checkbox("Show ground truth", key=f"show_gt_{st.session_state.idx}")
-
     with col_gt:
-        if show_gt: # if checked, show GT
-            show_image_url_cached(sample_key, row["gt_url"], "Ground Truth")
-        else:
-            # Placeholder keeps column width stable
-            st.empty()
+        with st.expander("Ground truth", expanded=False):
+        show_image_url_cached(sample_key, row["gt_url"], "Ground Truth")
 
     with col_img:
         show_image_url_cached(sample_key, row["image_url"], "Image")
