@@ -386,7 +386,7 @@ def main():
         )
 
         # Tiny spacer so the image row starts *below* the patch-type line
-        st.markdown("<div style='height:0.10rem;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height:0.16rem;'></div>", unsafe_allow_html=True)
 
     # layout: GT | Image | A | B | C
     col_gt, col_img, c1, c2, c3 = st.columns([1, 1, 1, 1, 1])
