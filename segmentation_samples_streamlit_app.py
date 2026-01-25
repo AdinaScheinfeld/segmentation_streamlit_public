@@ -221,20 +221,29 @@ def main():
     st.markdown(
         """
         <style>
-          /* Reduce whitespace without clipping the title */
-          .block-container { padding-top: 1.1rem; padding-bottom: 0.6rem; }
-          h1 { margin-top: 0rem !important; padding-top: 0rem !important; }
+          /* Keep enough top padding so the Streamlit header never clips the title */
+          .block-container { padding-top: 2.1rem; padding-bottom: 0.4rem; }
+
+          /* DON'T force h1 to 0; that’s what causes clipping in some deployments */
+          h1 { margin-top: 0.4rem !important; padding-top: 0.0rem !important; }
 
           /* Tighten vertical spacing globally */
-          div[data-testid="stVerticalBlock"] { gap: 0.20rem; }
-          .stCaption { margin-top: 0.05rem; margin-bottom: 0.05rem; }
+          div[data-testid="stVerticalBlock"] { gap: 0.15rem; }
 
-          /* Make images shorter so the whole page fits */
-          .stImage img { max-height: 270px; object-fit: contain; }
+          /* Tighten caption spacing under title and under images */
+          .stCaption { margin-top: 0.0rem !important; margin-bottom: 0.15rem !important; }
 
-          /* Compact widget spacing */
-          div[role="radiogroup"] > label { padding: 0.05rem 0.20rem; }
-          div[data-testid="stForm"] { padding-top: 0.2rem; }
+          /* Slightly smaller images so everything fits on one screen */
+          .stImage img { max-height: 235px; object-fit: contain; }
+
+          /* Compact checkbox / widgets spacing */
+          div[data-testid="stCheckbox"] { margin-top: 0.15rem; margin-bottom: 0.15rem; }
+
+          /* Compact radio spacing (keep stacked, just reduce padding) */
+          div[role="radiogroup"] > label { padding: 0.0rem 0.2rem; }
+
+          /* Reduce extra whitespace around the form container */
+          div[data-testid="stForm"] { padding-top: 0.0rem; }
         </style>
         """,
         unsafe_allow_html=True,
@@ -321,7 +330,7 @@ def main():
 
     # info display
     st.markdown(f"### Slice {st.session_state.idx + 1} / {len(df)}")
-    st.write(f"**Datatype:** {row.datatype}")
++    st.markdown("<div style='height:0.1rem'></div>", unsafe_allow_html=True)
 
     # --------------------
     # STABLE RANDOMIZE (per slice, deterministic)
