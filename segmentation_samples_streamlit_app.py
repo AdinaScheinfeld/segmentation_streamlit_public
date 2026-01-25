@@ -259,6 +259,14 @@ def main():
 
           /* Reduce extra whitespace around the form container */
           div[data-testid="stForm"] { padding-top: 0.0rem; }
+
+          /* Tighten expander header/padding so GT image aligns with other images */
+          div[data-testid="stExpander"] details { padding: 0rem !important; }
+          div[data-testid="stExpander"] summary {
+            padding: 0.20rem 0.45rem !important;
+            margin: 0rem !important;
+          }
+          div[data-testid="stExpander"] div[data-testid="stVerticalBlock"] { gap: 0.10rem !important; }
         </style>
         """,
         unsafe_allow_html=True,
@@ -397,9 +405,11 @@ def main():
     col_gt, col_img, c1, c2, c3 = st.columns([1, 1, 1, 1, 1])
 
     with col_gt:
-        # New expander per-slice so it always starts collapsed on each screen.
-        # The "##..." part is hidden from the UI but makes the widget identity unique.
-        with st.expander(f"Ground truth##gt_{st.session_state.idx}", expanded=False):
+        with st.expander(
+            "Ground truth",
+            expanded=False,
+            key=f"gt_expander_{st.session_state.idx}",  # new expander per-slice => starts closed
+        ):
             show_image_url_cached(sample_key, row["gt_url"], "Ground Truth")
 
     with col_img:
