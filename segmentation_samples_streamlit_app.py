@@ -330,7 +330,7 @@ def main():
 
     # info display
     st.markdown(f"### Slice {st.session_state.idx + 1} / {len(df)}")
-+    st.markdown("<div style='height:0.1rem'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height:0.1rem'></div>", unsafe_allow_html=True)
 
     # --------------------
     # STABLE RANDOMIZE (per slice, deterministic)
