@@ -369,7 +369,7 @@ def main():
             unsafe_allow_html=True,
         )
 
-    st.caption(f"Patch type: {row['patch_type']}")
+    st.caption(f"Patch type: {row['datatype']}")
 
     # layout: GT | Image | A | B | C
     col_gt, col_img, c1, c2, c3 = st.columns([1, 1, 1, 1, 1])
