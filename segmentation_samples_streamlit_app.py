@@ -398,7 +398,7 @@ def main():
 
     with col_gt:
         with st.expander("Ground truth", expanded=False):
-        show_image_url_cached(sample_key, row["gt_url"], "Ground Truth")
+            show_image_url_cached(sample_key, row["gt_url"], "Ground Truth")
 
     with col_img:
         show_image_url_cached(sample_key, row["image_url"], "Image")
