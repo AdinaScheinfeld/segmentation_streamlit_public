@@ -407,11 +407,8 @@ def main():
     col_gt, col_img, c1, c2, c3 = st.columns([1, 1, 1, 1, 1])
 
     with col_gt:
-        with st.expander(
-            "Ground truth",
-            expanded=False,
-            key=f"gt_expander_{st.session_state.idx}",  # new expander per-slice => starts closed
-        ):
+        gt_label = f"Ground truth\u200b{st.session_state.idx}"  # zero-width char => looks the same
+        with st.expander(gt_label, expanded=False):
             show_image_url_cached(sample_key, row["gt_url"], "Ground Truth")
 
     with col_img:
