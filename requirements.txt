@@ -1,5 +1,7 @@
-gspread
-google-auth
-pandas
-requests
-streamlit
+streamlit==1.41.1
+altair==5.5.0
+gspread==6.2.1
+google-auth==2.47.0
+pandas==2.2.3
+requests==2.32.5
+pillow==12.1.0
