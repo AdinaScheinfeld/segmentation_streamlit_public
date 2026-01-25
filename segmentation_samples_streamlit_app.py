@@ -397,7 +397,9 @@ def main():
     col_gt, col_img, c1, c2, c3 = st.columns([1, 1, 1, 1, 1])
 
     with col_gt:
-        with st.expander("Ground truth", expanded=False):
+        # New expander per-slice so it always starts collapsed on each screen.
+        # The "##..." part is hidden from the UI but makes the widget identity unique.
+        with st.expander(f"Ground truth##gt_{st.session_state.idx}", expanded=False):
             show_image_url_cached(sample_key, row["gt_url"], "Ground Truth")
 
     with col_img:
