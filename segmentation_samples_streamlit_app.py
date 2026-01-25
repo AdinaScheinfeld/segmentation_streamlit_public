@@ -246,10 +246,10 @@ def main():
           .stCaption { margin-top: 0.0rem !important; margin-bottom: 0.15rem !important; }
 
           /* Slightly smaller images so everything fits on one screen */
-          .stImage img { max-height: 225px; object-fit: contain; }
+          .stImage img { max-height: 210px; object-fit: contain; }
 
-          /* Nudge image blocks down a hair so they never sit on top of the patch-type line */
-          div[data-testid="stImage"] { margin-top: 0.20rem; }
+          /* IMPORTANT: push the whole first image row down so it cannot overlap Patch type */
+          div[data-testid="stImage"] { margin-top: 0.85rem !important; }
 
           /* Compact checkbox / widgets spacing */
           div[data-testid="stCheckbox"] { margin-top: 0.15rem; margin-bottom: 0.15rem; }
@@ -368,32 +368,30 @@ def main():
 
         st.markdown(
             f"""
-            <div style="margin-bottom:0.15rem;">
-            <div style="display:flex; align-items:baseline; gap:0.75rem;">
+            <div style="margin-bottom:0.0rem;">
+              <div style="display:flex; align-items:baseline; gap:0.75rem;">
                 <h3 style="margin:0;">
-                Reference image + predictions
+                  Reference image + predictions
                 </h3>
                 <h3 style="margin:0; font-weight:400; color:#555;">
-                (Slice {st.session_state.idx + 1} / {len(df)})
+                  (Slice {st.session_state.idx + 1} / {len(df)})
                 </h3>
-            </div>
+              </div>
 
-            <div style="
-                margin-top:0.05rem;
+              <div style="
+                margin-top:0.20rem;
+                margin-bottom:0.10rem;
                 font-size:0.95rem;
                 line-height:1.1;
                 color:#444;
                 white-space: nowrap;
-            ">
+              ">
                 Patch type: <strong>{pretty_type}</strong>
-            </div>
+              </div>
             </div>
             """,
             unsafe_allow_html=True,
         )
-
-        # Tiny spacer so the image row starts *below* the patch-type line
-        st.markdown("<div style='height:0.5rem;'></div>", unsafe_allow_html=True)
 
     # layout: GT | Image | A | B | C
     col_gt, col_img, c1, c2, c3 = st.columns([1, 1, 1, 1, 1])
