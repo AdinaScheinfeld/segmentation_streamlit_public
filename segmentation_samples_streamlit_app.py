@@ -361,10 +361,12 @@ def main():
     # Header row: empty GT column | inline header + slice counter
     _h_gt, _h_main = st.columns([1, 4])
     with _h_main:
+        pretty_type = PRETTY_DATATYPE.get(row["datatype"], row["datatype"])
+
         st.markdown(
             f"""
-            <div>
-            <div style="display:flex; align-items:center; gap:0.75rem;">
+            <div style="margin-bottom:0.15rem;">
+            <div style="display:flex; align-items:baseline; gap:0.75rem;">
                 <h3 style="margin:0;">
                 Reference image + predictions
                 </h3>
@@ -372,8 +374,8 @@ def main():
                 (Slice {st.session_state.idx + 1} / {len(df)})
                 </h3>
             </div>
-            <div style="margin-top:0.15rem; color:#666; font-size:0.95rem;">
-                Patch type: <strong>{PRETTY_DATATYPE.get(row['datatype'], row['datatype'])}</strong>
+            <div style="margin-top:0.1rem; font-size:0.95rem; color:#444;">
+                Patch type: <strong>{pretty_type}</strong>
             </div>
             </div>
             """,
