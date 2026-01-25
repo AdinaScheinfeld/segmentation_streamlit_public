@@ -406,10 +406,17 @@ def main():
     # layout: GT | Image | A | B | C
     col_gt, col_img, c1, c2, c3 = st.columns([1, 1, 1, 1, 1])
 
+    show_gt = st.checkbox(
+        "Show ground truth",
+        value=False,
+        key=f"show_gt_{st.session_state.idx}",  # new key each slice => starts unchecked
+    )
+
     with col_gt:
-        gt_label = f"Ground truth\u200b{st.session_state.idx}"  # zero-width char => looks the same
-        with st.expander(gt_label, expanded=False):
+        if show_gt:
             show_image_url_cached(sample_key, row["gt_url"], "Ground Truth")
+        else:
+            st.empty()  # keeps the column width stable
 
     with col_img:
         show_image_url_cached(sample_key, row["image_url"], "Image")
