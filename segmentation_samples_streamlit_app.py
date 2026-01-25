@@ -246,10 +246,12 @@ def main():
           .stCaption { margin-top: 0.0rem !important; margin-bottom: 0.15rem !important; }
 
           /* Slightly smaller images so everything fits on one screen */
-          .stImage img { max-height: 225px; object-fit: contain; }
+          .stImage img { max-height: 205px; object-fit: contain; }
 
           /* Nudge image blocks down a hair so they never sit on top of the patch-type line */
-          div[data-testid="stImage"] { margin-top: 0.20rem; }
+          div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {
+            margin-top: 0.6rem;
+            }
 
           /* Compact checkbox / widgets spacing */
           div[data-testid="stCheckbox"] { margin-top: 0.15rem; margin-bottom: 0.15rem; }
