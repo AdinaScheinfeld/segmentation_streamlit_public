@@ -374,7 +374,7 @@ def main():
                 (Slice {st.session_state.idx + 1} / {len(df)})
                 </h3>
             </div>
-            <div style="margin-top:0.1rem; font-size:0.95rem; color:#444;">
+            <div style="margin-top:-0.15rem; margin-bottom:0.05rem; font-size:0.95rem; line-height:1.1; color:#444;">
                 Patch type: <strong>{pretty_type}</strong>
             </div>
             </div>
