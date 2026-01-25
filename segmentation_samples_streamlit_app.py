@@ -246,7 +246,10 @@ def main():
           .stCaption { margin-top: 0.0rem !important; margin-bottom: 0.15rem !important; }
 
           /* Slightly smaller images so everything fits on one screen */
-          .stImage img { max-height: 235px; object-fit: contain; }
+          .stImage img { max-height: 225px; object-fit: contain; }
+
+          /* Nudge image blocks down a hair so they never sit on top of the patch-type line */
+          div[data-testid="stImage"] { margin-top: 0.20rem; }
 
           /* Compact checkbox / widgets spacing */
           div[data-testid="stCheckbox"] { margin-top: 0.15rem; margin-bottom: 0.15rem; }
@@ -365,7 +368,7 @@ def main():
 
         st.markdown(
             f"""
-            <div style="margin-bottom:0.15rem;">
+            <div style="margin-bottom:0.05rem;">
             <div style="display:flex; align-items:baseline; gap:0.75rem;">
                 <h3 style="margin:0;">
                 Reference image + predictions
@@ -374,13 +377,16 @@ def main():
                 (Slice {st.session_state.idx + 1} / {len(df)})
                 </h3>
             </div>
-            <div style="margin-top:-0.15rem; margin-bottom:0.05rem; font-size:0.95rem; line-height:1.1; color:#444;">
+            <div style="margin-top:-0.05rem; margin-bottom:0.00rem; font-size:0.95rem; line-height:1.1; color:#444;">
                 Patch type: <strong>{pretty_type}</strong>
             </div>
             </div>
             """,
             unsafe_allow_html=True,
         )
+
+        # Tiny spacer so the image row starts *below* the patch-type line
+        st.markdown("<div style='height:0.10rem;'></div>", unsafe_allow_html=True)
 
     # layout: GT | Image | A | B | C
     col_gt, col_img, c1, c2, c3 = st.columns([1, 1, 1, 1, 1])
