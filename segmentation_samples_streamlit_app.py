@@ -248,8 +248,7 @@ def main():
           /* Slightly smaller images so everything fits on one screen */
           .stImage img { max-height: 210px; object-fit: contain; }
 
-          /* IMPORTANT: push the whole first image row down so it cannot overlap Patch type */
-          div[data-testid="stImage"] { margin-top: 0.85rem !important; }
+          /* Don't globally move every image; we'll add a spacer before the image row instead */
 
           /* Compact checkbox / widgets spacing */
           div[data-testid="stCheckbox"] { margin-top: 0.15rem; margin-bottom: 0.15rem; }
@@ -400,6 +399,9 @@ def main():
             """,
             unsafe_allow_html=True,
         )
+
+    # Spacer to ensure the image row starts below the Patch type line
+    st.markdown("<div style='height:0.35rem;'></div>", unsafe_allow_html=True)
 
     # layout: GT | Image | A | B | C
     col_gt, col_img, c1, c2, c3 = st.columns([1, 1, 1, 1, 1])
