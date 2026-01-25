@@ -222,14 +222,15 @@ def main():
         """
         <style>
           /* Keep enough top padding so the Streamlit header never clips the title */
-          .block-container { padding-top: 2.1rem; padding-bottom: 0.4rem; }
+           .block-container {
+            padding-top: 1.8rem;   /* enough to avoid Streamlit header overlap */
+            padding-bottom: 0.6rem;
+            }
 
-          /* DON'T force h1 to 0; that’s what causes clipping in some deployments */
-          h1 {
-            margin-top: 0rem !important;
-            padding-top: 0rem !important;
-            font-size: 2.15rem !important;  /* slightly smaller, prevents clipping */
-            line-height: 1.2 !important;
+            h1 {
+            margin-top: 0.2rem !important;
+            font-size: 2.05rem !important;  /* slightly smaller */
+            line-height: 1.25 !important;
             }
 
           /* Tighten vertical spacing globally */
@@ -356,11 +357,13 @@ def main():
     with _h_main:
         st.markdown(
             f"""
-            <div style="display:flex; align-items:baseline; gap:1rem;">
-            <h3 style="margin:0;">Reference image + predictions</h3>
-            <span style="color:#666; font-size:0.95rem;">
-                Slice {st.session_state.idx + 1} / {len(df)}
-            </span>
+            <div style="display:flex; align-items:center; gap:0.75rem;">
+            <h3 style="margin:0;">
+                Reference image + predictions
+            </h3>
+            <h3 style="margin:0; font-weight:400; color:#555;">
+                (Slice {st.session_state.idx + 1} / {len(df)})
+            </h3>
             </div>
             """,
             unsafe_allow_html=True,
