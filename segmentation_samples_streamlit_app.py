@@ -214,6 +214,26 @@ def main():
         data_csv = Path(__file__).resolve().parent / args.data_csv.name
     df = pd.read_csv(data_csv, dtype=str, keep_default_na=False)
 
+    # --------------------
+    # UI: reduce top padding + tighten layout (avoid scrolling)
+    # --------------------
+    st.set_page_config(layout="wide")
+    st.markdown(
+        """
+        <style>
+          /* Remove extra top padding */
+          .block-container { padding-top: 0.6rem; padding-bottom: 0.6rem; }
+          /* Tighten spacing between elements */
+          div[data-testid="stVerticalBlock"] { gap: 0.25rem; }
+          /* Slightly smaller font in captions/labels */
+          .stCaption { margin-top: 0.1rem; margin-bottom: 0.1rem; }
+          /* Keep radio rows tight */
+          div[role="radiogroup"] > label { padding: 0.1rem 0.25rem; }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
 
     # --------------------
     # CONNECT TO GOOGLE SHEETS (via Streamlit secrets)
@@ -235,7 +255,7 @@ def main():
     st.title("Segmentation Prediction Ranking")
 
     # instructions to display in app
-    st.caption("Rank A/B/C best → worst. Model identities are hidden.")
+    st.caption("Rank A/B/C best → worst (no ties). Model identities are hidden.")
 
     # --------------------
     # SCREEN 0: ENTER RATER ID (before showing any samples)
@@ -295,7 +315,7 @@ def main():
 
     # info display
     st.markdown(f"### Slice {st.session_state.idx + 1} / {len(df)}")
-    st.write(f"**Datatype:** {row.datatype} | **Sample:** {row.sample_id} | **z:** {int(row.z)}")
+    st.write(f"**Datatype:** {row.datatype}")
 
     # --------------------
     # STABLE RANDOMIZE (per slice, deterministic)
@@ -314,12 +334,13 @@ def main():
     # --------------------
     # DISPLAY IMAGE + PREDS
     # --------------------
-    st.markdown("### Reference image + predictions")
-
-    # ref = load_slice(row["image_path"], int(row.z))
 
     # layout: GT | Image | A | B | C
     col_gt, col_img, c1, c2, c3 = st.columns([1, 1, 1, 1, 1])
+
+    # Put the header in the Image column so it always "starts" above Image
+    with col_img:
+        st.markdown("### Reference image + predictions")
 
     show_gt = st.checkbox("Show ground truth", key=f"show_gt_{st.session_state.idx}")
 
@@ -359,7 +380,7 @@ def main():
                 pass
 
 
-    st.markdown("### Rank each prediction (no ties allowed)")
+    # st.markdown("### Rank each prediction (no ties allowed)")
     rank_options = ["Best", "Middle", "Worst"]
 
     with st.form(key=f"rank_form_{st.session_state.idx}", clear_on_submit=False):
