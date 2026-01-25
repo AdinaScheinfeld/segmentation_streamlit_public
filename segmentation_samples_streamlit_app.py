@@ -21,7 +21,7 @@ import streamlit as st
 
 # --- Variable Definitions ---
 
-MODELS = ["image_clip", "unet", "microsam"]
+MODELS = ["unet_image_clip", "unet_random", "microsam"]
 LABELS = ["A", "B", "C"]
 PRETTY_DATATYPE = {
     "amyloid_plaque": "Amyloid beta plaque",
@@ -32,8 +32,8 @@ PRETTY_DATATYPE = {
 
 # map model name -> URL column name in the CSV
 MODEL_TO_URLCOL = {
-    "image_clip": "pred_image_clip_url",
-    "unet": "pred_unet_url",
+    "unet_image_clip": "pred_unet_image_clip_url",
+    "unet_random": "pred_unet_random_url",
     "microsam": "pred_microsam_url",
 }
 
@@ -442,8 +442,8 @@ def main():
             next_row = df.iloc[next_idx]
             try:
                 _ = _fetch_image_bytes(next_row["image_url"])
-                _ = _fetch_image_bytes(next_row["pred_image_clip_url"])
-                _ = _fetch_image_bytes(next_row["pred_unet_url"])
+                _ = _fetch_image_bytes(next_row["pred_unet_image_clip_url"])
+                _ = _fetch_image_bytes(next_row["pred_unet_random_url"])
                 _ = _fetch_image_bytes(next_row["pred_microsam_url"])
             except Exception:
                 pass
