@@ -387,6 +387,16 @@ def main():
                 (Slice {st.session_state.idx + 1} / {len(df)})
                 </h3>
             </div>
+
+            <div style="
+                margin-top:0.05rem;
+                font-size:0.95rem;
+                line-height:1.1;
+                color:#444;
+                white-space: nowrap;
+            ">
+                Patch type: <strong>{pretty_type}</strong>
+            </div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -411,21 +421,6 @@ def main():
             st.empty()  # keeps the column width stable
 
     with col_img:
-        st.markdown(
-            f"""
-            <div style="
-                text-align: center;
-                font-size: 0.95rem;
-                color: #444;
-                margin-bottom: 0.25rem;
-                white-space: nowrap;
-            ">
-                Patch type: <strong>{pretty_type}</strong>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
         show_image_url_cached(sample_key, row["image_url"], "Image")
 
     for col, label in zip([c1, c2, c3], LABELS):
