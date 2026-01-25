@@ -225,7 +225,12 @@ def main():
           .block-container { padding-top: 2.1rem; padding-bottom: 0.4rem; }
 
           /* DON'T force h1 to 0; that’s what causes clipping in some deployments */
-          h1 { margin-top: 0.4rem !important; padding-top: 0.0rem !important; }
+          h1 {
+            margin-top: 0rem !important;
+            padding-top: 0rem !important;
+            font-size: 2.15rem !important;  /* slightly smaller, prevents clipping */
+            line-height: 1.2 !important;
+            }
 
           /* Tighten vertical spacing globally */
           div[data-testid="stVerticalBlock"] { gap: 0.15rem; }
@@ -328,10 +333,6 @@ def main():
     row = df.iloc[st.session_state.idx]
     sample_key = str(row.sample_id)  # stable key for this sample
 
-    # info display
-    st.markdown(f"### Slice {st.session_state.idx + 1} / {len(df)}")
-    st.markdown("<div style='height:0.1rem'></div>", unsafe_allow_html=True)
-
     # --------------------
     # STABLE RANDOMIZE (per slice, deterministic)
     # --------------------
@@ -350,10 +351,20 @@ def main():
     # DISPLAY IMAGE + PREDS
     # --------------------
 
-    # Header row: empty GT column | header spanning Image + A + B + C
+    # Header row: empty GT column | inline header + slice counter
     _h_gt, _h_main = st.columns([1, 4])
     with _h_main:
-        st.markdown("### Reference image + predictions")
+        st.markdown(
+            f"""
+            <div style="display:flex; align-items:baseline; gap:1rem;">
+            <h3 style="margin:0;">Reference image + predictions</h3>
+            <span style="color:#666; font-size:0.95rem;">
+                Slice {st.session_state.idx + 1} / {len(df)}
+            </span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
     # layout: GT | Image | A | B | C
     col_gt, col_img, c1, c2, c3 = st.columns([1, 1, 1, 1, 1])
