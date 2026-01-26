@@ -23,13 +23,13 @@ source activate monai-env2
 
 # run the script to build the segmentation samples list
 python -u /home/ads4015/segmentation_streamlit_public/build_segmentation_samples_list.py \
-  --image_clip_root /midtier/paetzollab/scratch/ads4015/temp_selma_segmentation_preds_autumn_sweep_27_v2 \
-  --unet_root /midtier/paetzollab/scratch/ads4015/compare_methods/unet_level4/finetuned_cross_val \
+  --unet_image_clip_root /midtier/paetzollab/scratch/ads4015/temp_selma_segmentation_preds_super_sweep2 \
+  --unet_random_root /midtier/paetzollab/scratch/ads4015/temp_selma_segmentation_preds_unet_random2 \
   --microsam_root /midtier/paetzollab/scratch/ads4015/compare_methods/micro_sam/finetuned_cross_val_b2 \
   --finetune_patches_root /midtier/paetzollab/scratch/ads4015/data_selma3d/selma3d_finetune_patches \
-  --datatypes amyloid_plaque c_fos_positive cell_nucleus vessels \
-  --folds 0 1 2 \
-  --preds_per_fold 2 \
+  --datatypes amyloid_plaque cell_nucleus vessels \
+  --train_sizes 5 15 \
+  --preds_per_size 2 \
   --z_planes 32 64 \
   --slices_per_pred 2 \
   --z_border 2 \

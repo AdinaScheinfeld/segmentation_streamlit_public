@@ -7,6 +7,7 @@ import argparse
 import nibabel as nib
 import numpy as np
 import pandas as pd
+from dataclasses import dataclass
 from pathlib import Path
 import re
 
@@ -14,7 +15,7 @@ import re
 # --- Variable Definitions ---
 
 # regex to extract cvfold from runfolder name
-NTR_RE = re.compile(r"cvfold(\d+)_ntr(\d+)_")
+NTR_RE  = re.compile(r"cvfold(\d+)_ntr(\d+)_")
 PRED_ID_RE = re.compile(r"(patch_\d+)_(vol\d+)_ch(\d+)_pred_")
 
 # map datatype to finetune patches subdir
@@ -25,36 +26,28 @@ DTYPE_TO_PATCHDIR = {
     "vessels": "vessels_patches",
 }
 
-# map model to method subdir
+# Short dirs exist for super_sweep2 and unet_random2
+DTYPE_TO_SHORTDIR = {
+    "amyloid_plaque": "amyloid_plaque",
+    "c_fos_positive": "c_fos_positive",
+    "cell_nucleus": "cell_nucleus",
+    "vessels": "vessels",
+}
+
+# map method -> datatype subdir under root/preds/
+# NOTE:
+#   - unet_image_clip (super_sweep2) uses short dirs (amyloid_plaque, vessels, ...)
+#   - unet_random and microsam use *_patches dirs
 DTYPE_TO_METHOD_SUBDIR = {
-
-    # image+clip model uses shorter names
-    "image_clip": {
-        "amyloid_plaque": "amyloid_plaque",
-        "c_fos_positive": "c_fos_positive",
-        "cell_nucleus": "cell_nucleus",
-        "vessels": "vessels",
-    },
-
-    # unet and microsam use *_patches folder names
-    "unet": {
-        "amyloid_plaque": "amyloid_plaque_patches",
-        "c_fos_positive": "c_fos_positive_patches",
-        "cell_nucleus": "cell_nucleus_patches",
-        "vessels": "vessels_patches",
-    },
-    "microsam": {
-        "amyloid_plaque": "amyloid_plaque_patches",
-        "c_fos_positive": "c_fos_positive_patches",
-        "cell_nucleus": "cell_nucleus_patches",
-        "vessels": "vessels_patches",
-    },
+    "unet_image_clip": DTYPE_TO_SHORTDIR,
+    "unet_random": DTYPE_TO_SHORTDIR,
+    "microsam": DTYPE_TO_PATCHDIR,
 }
 
 # map model to datatype subdir under preds/
 METHOD_TO_PREDS_SUBDIR = {
-    "image_clip": "preds", # .../<runfolder>/preds/*.nii.gz
-    "unet": "", # .../<runfolder>/*.nii.gz
+    "unet_image_clip": "preds", # .../<runfolder>/preds/*.nii.gz
+    "unet_random": "preds", # .../<runfolder>/preds/*.nii.gz
     "microsam": "patches" # .../<runfolder>/patches/*.nii.gz
 }
 
@@ -69,37 +62,58 @@ def parse_pred_ids(pred_filename: str):
     return m.group(1), m.group(2), int(m.group(3))
 
 
+def pred_key_from_filename(pred_filename: str, method: str):
+    """
+    Return a join key shared across methods: (patch_id, vol_id, ch)
+    """
+    # microsam_b2 now follows the same *_pred_* filename convention as the UNets
+    return parse_pred_ids(pred_filename)
+
+def resolve_dtype_base(root: Path, datatype: str, method: str) -> Path:
+    dtype_dir = DTYPE_TO_METHOD_SUBDIR[method][datatype]
+    return root / "preds" / dtype_dir
+
+
 # function to list runfolders for a given datatype
 def list_runfolders(root: Path, datatype: str, method: str):
-    dtype_dir = DTYPE_TO_METHOD_SUBDIR[method][datatype]
-    base = root / "preds" / dtype_dir
+    base = resolve_dtype_base(root, datatype, method)
     if not base.exists():
         return []
     return sorted([p for p in base.iterdir() if p.is_dir()])
 
 
-# function to pick one runfolder per fold deterministically
-def pick_one_runfolder_per_fold_max_ntr_with_info(runfolders):
-    """
-    For each fold, choose the runfolder with the highest ntr.
-    Returns:
-      picked: dict fold_id -> Path(runfolder)
-      info:   dict fold_id -> int(ntr)
-    """
-    best = {}  # fold -> (ntr, name, Path)
-    for rf in runfolders:
-        m = NTR_RE.search(rf.name)
-        if not m:
-            continue
-        fold = int(m.group(1))
-        ntr = int(m.group(2))
-        key = (ntr, rf.name)  # tie-break by name
-        if fold not in best or key > (best[fold][0], best[fold][1]):
-            best[fold] = (ntr, rf.name, rf)
+# # function to pick one runfolder per fold deterministically
+# def pick_one_runfolder_per_fold_max_ntr_with_info(runfolders):
+#     """
+#     For each fold, choose the runfolder with the highest ntr.
+#     Returns:
+#       picked: dict fold_id -> Path(runfolder)
+#       info:   dict fold_id -> int(ntr)
+#     """
+#     best = {}  # fold -> (ntr, name, Path)
+#     for rf in runfolders:
+#         m = NTR_RE.search(rf.name)
+#         if not m:
+#             continue
+#         fold = int(m.group(1))
+#         ntr = int(m.group(2))
+#         key = (ntr, rf.name)  # tie-break by name
+#         if fold not in best or key > (best[fold][0], best[fold][1]):
+#             best[fold] = (ntr, rf.name, rf)
 
-    picked = {fold: tpl[2] for fold, tpl in best.items()}
-    info   = {fold: tpl[0] for fold, tpl in best.items()}
-    return picked, info
+#     picked = {fold: tpl[2] for fold, tpl in best.items()}
+#     info   = {fold: tpl[0] for fold, tpl in best.items()}
+#     return picked, info
+
+# function to pick one runfolder per fold deterministically
+def runfolder_matches_size(rf_name: str, method: str, size: int) -> bool:
+    """
+    All three methods now use runfolders that match cvfold*_ntr{size}_...
+    """
+    if method in ("unet_image_clip", "unet_random", "microsam"):
+        m = NTR_RE.search(rf_name)
+        return (m is not None) and (int(m.group(2)) == size)
+    return False
 
 
 # function to list prediction files in a runfolder
@@ -111,10 +125,33 @@ def list_pred_files(runfolder: Path, method: str):
     return sorted(pred_dir.glob("*_pred_*.nii.gz"))  # ONLY preds, not probs
 
 
-# function to get corresponding runfolder for other models
-def corresponding_runfolder(model_root: Path, datatype: str, runfolder_name: str, method: str):
-    dtype_dir = DTYPE_TO_METHOD_SUBDIR[method][datatype]
-    return model_root / "preds" / dtype_dir / runfolder_name
+# # function to get corresponding runfolder for other models
+# def corresponding_runfolder(model_root: Path, datatype: str, runfolder_name: str, method: str):
+#     dtype_dir = DTYPE_TO_METHOD_SUBDIR[method][datatype]
+#     return model_root / "preds" / dtype_dir / runfolder_name
+
+def build_pred_index_for_size(root: Path, datatype: str, method: str, size: int):
+    """
+    Build mapping: (patch_id, vol_id, ch) -> (pred_path, runfolder_name, pred_filename)
+    across ALL runfolders matching the requested size.
+    Deterministic: sorted runfolders, sorted files; keep first occurrence.
+    """
+    idx = {}
+    base = resolve_dtype_base(root, datatype, method)
+    runfolders = list_runfolders(root, datatype, method=method)
+    runfolders = [rf for rf in runfolders if runfolder_matches_size(rf.name, method, size)]
+
+    for rf in runfolders:
+        files = list_pred_files(rf, method=method)
+        for p in files:
+            try:
+                k = pred_key_from_filename(p.name, method)
+            except Exception:
+                # skip weird files that don't follow naming conventions
+                continue
+            if k not in idx:
+                idx[k] = (p, rf.name, p.name)
+    return idx
 
 
 # function to check if a slice has any foreground in ANY prediction
@@ -192,23 +229,23 @@ def main():
 
     # argument parsing
     ap = argparse.ArgumentParser()
-    ap.add_argument("--image_clip_root", type=Path, required=True, help="Path to segmentation preds from image+clip model")
-    ap.add_argument("--unet_root", type=Path, required=True, help="Path to segmentation preds from unet model")
-    ap.add_argument("--microsam_root", type=Path, required=True, help="Path to segmentation preds from microsam model")
+    ap.add_argument("--unet_image_clip_root", type=Path, required=True, help="Path to .../temp_selma_segmentation_preds_super_sweep2")
+    ap.add_argument("--unet_random_root", type=Path, required=True, help="Path to .../temp_selma_segmentation_preds_unet_random2")
+    ap.add_argument("--microsam_root", type=Path, required=True, help="Path to .../compare_methods/micro_sam/finetuned_cross_val_b")
     ap.add_argument("--finetune_patches_root", type=Path, required=True, help="Path to selma3d_finetune_patches (contains *_patches subfolders)")
-    ap.add_argument("--datatypes", nargs="+", default=["amyloid_plaque", "c_fos_positive", "cell_nucleus", "vessels"], help="List of datatypes to include")
+    ap.add_argument("--datatypes", nargs="+", default=["amyloid_plaque", "cell_nucleus", "vessels"], help="List of datatypes to include")
+    ap.add_argument("--train_sizes", nargs="+", type=int, default=[5, 15], help="Sizes to include (ntr for UNet; pool for microsam).")
     ap.add_argument("--z_planes", nargs="+", type=int, default=[32, 64], help="Preferred z indices; script will backfill if empty.")
     ap.add_argument("--slices_per_pred", type=int, default=2, help="How many z slices to pick per pred volume (distinct).")
     ap.add_argument("--z_border", type=int, default=1, help="Exclude z in [0,z_border) and [z_dim-z_border, z_dim).")
-    ap.add_argument("--preds_per_fold", type=int, default=2, help="Number of predictions to select per fold")
-    ap.add_argument("--folds", nargs="+", type=int, default=[0, 1, 2], help="List of folds to include")
+    ap.add_argument("--preds_per_size", type=int, default=2, help="Number of patch-volumes to select per datatype per size (after intersecting methods)")
     ap.add_argument("--out_csv", type=Path, default=Path("segmentation_samples.csv"), help="Output CSV file path")
     args = ap.parse_args()
 
     # roots dict
     roots = {
-        "image_clip": args.image_clip_root,
-        "unet": args.unet_root,
+        "unet_image_clip": args.unet_image_clip_root,
+        "unet_random": args.unet_random_root,
         "microsam": args.microsam_root,
     }
 
@@ -218,141 +255,155 @@ def main():
     for datatype in args.datatypes:
         print(f"\nProcessing datatype: {datatype}", flush=True)
 
-        # 1) Find runfolders in image_clip root
-        runfolders = list_runfolders(roots["image_clip"], datatype, method="image_clip")
-        if not runfolders:
-            raise SystemExit(f"No runfolders found for datatype={datatype} under {roots['image_clip']}")
+        for size in args.train_sizes:
+            print(f"  Selecting for size={size} (ntr{size})", flush=True)
 
-        # 2) Pick ONE runfolder per fold deterministically
-        picked, picked_ntr = pick_one_runfolder_per_fold_max_ntr_with_info(runfolders)
+            idx_clip = build_pred_index_for_size(roots["unet_image_clip"], datatype, "unet_image_clip", size)
+            idx_rand = build_pred_index_for_size(roots["unet_random"], datatype, "unet_random", size)
+            idx_ms   = build_pred_index_for_size(roots["microsam"], datatype, "microsam", size)
 
-        # Print which ntr was chosen per fold (in args.folds order)
-        chosen_msg = ", ".join([f"cvfold{f}: ntr{picked_ntr.get(f, 'NA')}" for f in args.folds])
-        print(f"  Chosen runfolders by fold (max ntr): {chosen_msg}", flush=True)
+            # ---- EARLY DEBUG: INDEX CONTENTS ----
+            def _dbg_idx(name, idx):
+                keys = sorted(idx.keys())
+                print(f"    [DEBUG INDEX] {name}: {len(keys)} preds", flush=True)
+                for k in keys[:5]:
+                    p, rf, fname = idx[k]
+                    print(f"      key={k}  file={fname}  (runfolder={rf})", flush=True)
+                if len(keys) > 5:
+                    print(f"      ... ({len(keys) - 5} more)", flush=True)
 
-        # Ensure we have desired folds
-        missing_folds = [f for f in args.folds if f not in picked]
-        if missing_folds:
-            raise SystemExit(f"Missing folds {missing_folds} for datatype={datatype} in {roots['image_clip']}")
+            print(
+                f"\n  [DEBUG] datatype={datatype} size={size}",
+                flush=True,
+            )
 
-        for fold in args.folds:
-            rf_clip = picked[fold]
-            run_name = rf_clip.name
+            _dbg_idx("unet_image_clip", idx_clip)
+            _dbg_idx("unet_random", idx_rand)
+            _dbg_idx("microsam", idx_ms)
 
-            # 3) Ensure corresponding runfolders exist for other models
-            rf_unet = corresponding_runfolder(roots["unet"], datatype, run_name, method="unet")
-            rf_microsam = corresponding_runfolder(roots["microsam"], datatype, run_name, method="microsam")
+            common_keys = sorted(set(idx_clip) & set(idx_rand) & set(idx_ms))
+            print(f"    [DEBUG INTERSECTION] common keys = {len(common_keys)}", flush=True)
 
-            if not rf_unet.exists():
-                raise SystemExit(f"Missing unet runfolder: {rf_unet}")
-            if not rf_microsam.exists():
-                raise SystemExit(f"Missing microsam runfolder: {rf_microsam}")
+            if len(common_keys) < args.preds_per_size:
+                raise SystemExit(
+                    f"Not enough common pred keys for datatype={datatype}, size={size}. "
+                    f"Need {args.preds_per_size}, found {len(common_keys)}."
+                )
 
-            # 4) Pick exactly preds_per_fold files from the image_clip runfolder
-            clip_files = list_pred_files(rf_clip, method="image_clip")
-            if len(clip_files) < args.preds_per_fold:
-                raise SystemExit(f"Found only {len(clip_files)} preds in {rf_clip}/preds, expected {args.preds_per_fold}")
+            # Pick exactly 2 keys per fold (3 folds -> 6 total) in a deterministic way
+            def _fold_from_runfolder(rf_name: str) -> int:
+                # runfolder like: cvfold2_ntr15_...
+                m = re.search(r"^cvfold(\d+)_", rf_name)
+                if not m:
+                    raise ValueError(f"Could not parse fold from runfolder: {rf_name}")
+                return int(m.group(1))
 
-            # debugging counters
-            dbg = {
-                "total_clip_files": 0,
-                "missing_unet_file": 0,
-                "missing_microsam_file": 0,
-                "insufficient_slices": 0,
-                "missing_image_or_gt": 0,
-                "selected_preds": 0,
-            }
+            keys_by_fold = {0: [], 1: [], 2: []}
+            for k in common_keys:
+                clip_path, clip_rf, _ = idx_clip[k]
+                f = _fold_from_runfolder(clip_rf)
+                if f in keys_by_fold:
+                    keys_by_fold[f].append(k)
 
-            # We need exactly preds_per_fold pred-volumes that each yield slices_per_pred valid z's.
-            selected_pred_vols = 0
-            for clip_path in clip_files:
-                dbg["total_clip_files"] += 1
-                if selected_pred_vols >= args.preds_per_fold:
-                    break
+            picked_keys = []
+            for f in sorted(keys_by_fold):
+                keys_by_fold[f].sort()
+                picked_keys.extend(keys_by_fold[f][:2])  # 2 test images per fold
 
-                unet_dir = rf_unet if METHOD_TO_PREDS_SUBDIR["unet"] == "" else (rf_unet / METHOD_TO_PREDS_SUBDIR["unet"])
-                microsam_dir = rf_microsam if METHOD_TO_PREDS_SUBDIR["microsam"] == "" else (rf_microsam / METHOD_TO_PREDS_SUBDIR["microsam"])
+            if len(picked_keys) < 6:
+                raise SystemExit(
+                    f"Not enough per-fold keys for datatype={datatype}, size={size}. "
+                    f"Need 6 (2 per fold), found {len(picked_keys)}."
+                )
 
-                unet_path = unet_dir / clip_path.name
-                microsam_path = microsam_dir / clip_path.name
+            for k in picked_keys:
+                clip_path, clip_rf, clip_fname = idx_clip[k]
+                rand_path, rand_rf, rand_fname = idx_rand[k]
+                ms_path,   ms_rf,   ms_fname   = idx_ms[k]
 
-                if not unet_path.exists():
-                    dbg["missing_unet_file"] += 1
-                    continue
-                if not microsam_path.exists():
-                    dbg["missing_microsam_file"] += 1
-                    continue
+                # ---- PRINT WHERE THIS PRED IS COMING FROM ----
+                print(
+                    "    [PRED SOURCE] "
+                    f"datatype={datatype} size={size} key={k}\n"
+                    f"      unet_image_clip: runfolder={clip_rf}\n"
+                    f"        path={clip_path}\n"
+                    f"        file={clip_fname}\n"
+                    f"      unet_random:     runfolder={rand_rf}\n"
+                    f"        path={rand_path}\n"
+                    f"        file={rand_fname}\n"
+                    f"      microsam:        runfolder={ms_rf}\n"
+                    f"        path={ms_path}\n"
+                    f"        file={ms_fname}",
+                    flush=True,
+                )
 
-                pred_paths = [clip_path, unet_path, microsam_path]
-                
+                pred_paths = [clip_path, rand_path, ms_path]
                 z_list, z_info = select_z_slices_for_pred(
                     pred_paths,
                     z_targets=args.z_planes,
                     slices_per_pred=args.slices_per_pred,
-                    z_border=args.z_border
+                    z_border=args.z_border,
                 )
                 if len(z_list) != args.slices_per_pred:
-                    dbg["insufficient_slices"] += 1
+                    raise SystemExit(
+                        f"Could not find {args.slices_per_pred} non-empty slices for "
+                        f"{datatype} size={size} k={k}"
+                    )
 
-                # ---- PRINT SELECTION DETAILS ----
-                patch_id, vol_id, ch = parse_pred_ids(clip_path.name)
-                print(f"  [{datatype} | cvfold{fold} | {patch_id}_{vol_id}_ch{ch}]", flush=True)
+                patch_id, vol_id, ch = k  # k = (patch_id, vol_id, ch)
+                print(f"    [{datatype} | size{size} | {patch_id}_{vol_id}_ch{ch}] "
+                      f"(clip={clip_rf}, rand={rand_rf}, ms={ms_rf})", flush=True)
 
                 for z, is_pref, has_fg in z_info:
                     if is_pref and has_fg:
-                        print(f"    preferred z={z} ✓", flush=True)
+                        print(f"      preferred z={z} ✓", flush=True)
                     elif is_pref and not has_fg:
-                        print(f"    preferred z={z} ✗ (empty)", flush=True)
+                        print(f"      preferred z={z} ✗ (empty)", flush=True)
                     elif has_fg:
-                        print(f"    backfilled z={z} ✓", flush=True)
+                        print(f"      backfilled z={z} ✓", flush=True)
 
                 patchdir = args.finetune_patches_root / DTYPE_TO_PATCHDIR[datatype]
                 image_path = patchdir / f"{patch_id}_{vol_id}_ch{ch}.nii.gz"
                 gt_path    = patchdir / f"{patch_id}_{vol_id}_ch{ch}_label.nii.gz"
                 if not image_path.exists() or not gt_path.exists():
-                    dbg["missing_image_or_gt"] += 1
-                    continue
+                    raise SystemExit(f"Missing image/gt for {datatype} {patch_id}_{vol_id}_ch{ch}")
 
-                # Append one row per chosen z (unique by construction)
                 for z in z_list:
-                    sample_id = f"{datatype}_{run_name}_{clip_path.stem}_z{z}"
+                    # use a stable stem based on the key (since filenames differ across methods)
+                    sample_stem = f"{patch_id}_{vol_id}_ch{ch}"
+                    sample_id = f"{datatype}_size{size}_{sample_stem}_z{z}"
                     records.append({
                         "sample_id": sample_id,
                         "datatype": datatype,
-                        "cvfold": fold,
-                        "runfolder": run_name,
-                        "filename": clip_path.name,
+                        "train_size": int(size),
+                        # keep one representative filename for bookkeeping (clip fname)
+                        "filename": clip_fname,
                         "z": int(z),
                         "image_path": str(image_path),
                         "gt_path": str(gt_path),
-                        "image_clip_path": str(clip_path),
-                        "unet_path": str(unet_path),
-                        "microsam_path": str(microsam_path),
+                        "unet_image_clip_path": str(clip_path),
+                        "unet_random_path": str(rand_path),
+                        "microsam_path": str(ms_path),
+                        "unet_image_clip_runfolder": clip_rf,
+                        "unet_random_runfolder": rand_rf,
+                        "microsam_runfolder": ms_rf,
                     })
 
-                selected_pred_vols += 1
-                dbg['selected_preds'] += 1
-
-            # print debug summary for this fold
-            print(f'   [DEBUG {datatype} fold{fold}] {dbg}', flush=True)
-
-            if selected_pred_vols != args.preds_per_fold:
-                raise SystemExit(
-                    f"Could not find {args.preds_per_fold} pred-volumes with "
-                    f"{args.slices_per_pred} non-empty slices each for datatype={datatype}, fold={fold} "
-                    f"in runfolder={run_name}. Found {selected_pred_vols}."
-                )
-
-        # helpful logging
-        per_dtype = len(args.folds) * args.preds_per_fold * args.slices_per_pred
+        per_dtype = len(args.train_sizes) * args.preds_per_size * args.slices_per_pred
         print(f"  Added {per_dtype} rows for {datatype} "
-              f"({len(args.folds)} folds × {args.preds_per_fold} preds × {args.slices_per_pred} slices_per_pred)", flush=True)
+              f"({len(args.train_sizes)} sizes × {args.preds_per_size} preds × {args.slices_per_pred} slices_per_pred)", flush=True)
 
     # save to csv
     df = pd.DataFrame(records)
     df = df.sample(frac=1, random_state=100).reset_index(drop=True)  # shuffle rows to randomize order deterministically
-    expected = len(args.datatypes) * len(args.folds) * args.preds_per_fold * args.slices_per_pred
+
+    # If we pick 2 test images per fold, total preds per (datatype,size) = 2 * n_folds
+    # Default to 3 folds if present; infer from what we actually logged.
+    n_folds = df["unet_image_clip_runfolder"].str.extract(r"^cvfold(\d+)_")[0].nunique()
+    preds_per_dtype_size = 2 * int(n_folds)
+    expected = len(args.datatypes) * len(args.train_sizes) * preds_per_dtype_size * args.slices_per_pred
     print(f"\nTotal samples collected: {len(df)}", flush=True)
+    print(f"[DEBUG EXPECTED] n_folds={n_folds}, preds_per_dtype_size={preds_per_dtype_size}, expected={expected}", flush=True)
     if len(df) != expected:
         raise SystemExit(f"ERROR: expected {expected} rows but got {len(df)}")
 

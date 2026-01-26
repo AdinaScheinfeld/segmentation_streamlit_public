@@ -144,8 +144,8 @@ def main():
         items = [
             ("image", row["image_path"], False),
             ("gt", row["gt_path"], True),
-            ("pred_image_clip", row["image_clip_path"], True),
-            ("pred_unet", row["unet_path"], True),
+            ("pred_unet_image_clip", row["unet_image_clip_path"], True),
+            ("pred_unet_random", row["unet_random_path"], True),
             ("pred_microsam", row["microsam_path"], True),
         ]
 
@@ -166,13 +166,15 @@ def main():
         out_rows.append({
             "sample_id": sample_id,
             "datatype": datatype,
+            "train_size": row.get("train_size", ""),
             "z": z,
             # URLs for Streamlit Cloud
             **url_map,
             # keep original bookkeeping if you want
-            "cvfold": row.get("cvfold", ""),
-            "runfolder": row.get("runfolder", ""),
             "filename": row.get("filename", ""),
+            "unet_image_clip_runfolder": row.get("unet_image_clip_runfolder", ""),
+            "unet_random_runfolder": row.get("unet_random_runfolder", ""),
+            "microsam_runfolder": row.get("microsam_runfolder", ""),
         })
 
         if (i + 1) % 10 == 0:
