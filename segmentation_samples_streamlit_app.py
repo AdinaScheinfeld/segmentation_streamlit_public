@@ -207,7 +207,7 @@ def main():
     ap.add_argument("--data_csv", type=Path, default=Path("segmentation_samples_urls.csv"))
     ap.add_argument("--out_json", type=Path, default=Path("segmentation_results.json"))
     ap.add_argument("--seed", type=int, default=100)
-    ap.add_argument("--user_id", type=str, default="anon")
+    ap.add_argument("--user_id", type=str, default="anonymous")
     args = ap.parse_args()
 
     # set random seed
@@ -307,7 +307,7 @@ def main():
 
     if not st.session_state.started:
         st.markdown("## Welcome")
-        st.write("Enter your rater ID to begin. (This can be initials or a short name.)")
+        st.write("Please enter your name or rater ID to begin.")
 
         st.session_state.user_id = st.text_input(
             "Rater ID",
@@ -346,7 +346,7 @@ def main():
         out_path.parent.mkdir(parents=True, exist_ok=True)
         with open(out_path, "w") as f:
             json.dump(st.session_state.results, f, indent=2)
-        st.write("Saved results to:", str(out_path))
+        # st.write("Saved results to:", str(out_path))
         st.stop()
 
     # get current row
